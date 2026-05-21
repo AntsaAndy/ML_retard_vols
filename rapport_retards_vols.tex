@@ -1,0 +1,752 @@
+\documentclass[12pt,a4paper]{article}
+
+% ─── Packages ──────────────────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{float}
+\usepackage{multirow}
+\usepackage{colortbl}
+\usepackage{mdframed}
+\usepackage{listings}
+\usepackage{tcolorbox}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{tikz}
+
+\usepackage{setspace}
+\usepackage{abstract}
+
+% ─── Geometry ──────────────────────────────────────────────────────────────────
+\geometry{
+  top=2.5cm, bottom=2.5cm,
+  left=2.8cm, right=2.8cm,
+  headheight=15pt
+}
+
+% ─── Colors ────────────────────────────────────────────────────────────────────
+\definecolor{primary}{RGB}{33,150,243}
+\definecolor{secondary}{RGB}{76,175,80}
+\definecolor{accent}{RGB}{255,152,0}
+\definecolor{danger}{RGB}{244,67,54}
+\definecolor{lightgray}{RGB}{245,245,245}
+\definecolor{darkgray}{RGB}{66,66,66}
+\definecolor{best}{RGB}{200,230,201}
+
+% ─── Header/Footer ─────────────────────────────────────────────────────────────
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{primary}{\textbf{Prédiction de Retards de Vols}}}
+\fancyhead[R]{\small\textcolor{darkgray}{Machine Learning | 2024}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ─── Section styles ────────────────────────────────────────────────────────────
+\titleformat{\section}{\Large\bfseries\color{primary}}{}{0em}{}[\titlerule]
+\titleformat{\subsection}{\large\bfseries\color{darkgray}}{}{0em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\color{darkgray}}{}{0em}{}
+
+% ─── Hyperref ──────────────────────────────────────────────────────────────────
+\hypersetup{
+  colorlinks=true, linkcolor=primary, urlcolor=primary, citecolor=secondary,
+  pdftitle={Prédiction de Retards de Vols},
+  pdfauthor={Projet Machine Learning}
+}
+
+% ─── tcolorbox styles ──────────────────────────────────────────────────────────
+\tcbuselibrary{skins,breakable}
+\newtcolorbox{infobox}[1][]{
+  enhanced, colback=primary!8, colframe=primary, fonttitle=\bfseries,
+  title=#1, breakable
+}
+\newtcolorbox{resultbox}[1][]{
+  enhanced, colback=secondary!8, colframe=secondary, fonttitle=\bfseries,
+  title=#1, breakable
+}
+\newtcolorbox{warningbox}[1][]{
+  enhanced, colback=accent!10, colframe=accent, fonttitle=\bfseries,
+  title=#1, breakable
+}
+
+% ─── Listings ──────────────────────────────────────────────────────────────────
+\lstset{
+  language=Python, basicstyle=\small\ttfamily,
+  backgroundcolor=\color{lightgray}, frame=single,
+  keywordstyle=\color{primary}\bfseries,
+  commentstyle=\color{secondary}\itshape,
+  stringstyle=\color{danger},
+  breaklines=true, showstringspaces=false,
+  numbers=left, numberstyle=\tiny\color{darkgray}
+}
+
+% ──────────────────────────────────────────────────────────────────────────────
+\begin{document}
+
+% ─── Title Page ───────────────────────────────────────────────────────────────
+\begin{titlepage}
+  \centering
+  \vspace*{1.5cm}
+
+  {\Huge\bfseries\color{primary} Prédiction des Retards de Vols}\\[0.5cm]
+  {\Large\color{darkgray} Classification Binaire par Machine Learning}\\[2cm]
+
+  \begin{tcolorbox}[enhanced, colback=primary!10, colframe=primary, width=0.8\textwidth]
+    \centering
+    \textbf{Résumé du Projet}\\[0.3cm]
+    \small
+    Ce rapport présente une étude complète de prédiction des retards de vols aériens
+    à partir d'un dataset de plus de 3 millions d'enregistrements. Quatre modèles de 
+    Machine Learning sont comparés : Régression Logistique, Random Forest, XGBoost 
+    et LightGBM. Le meilleur modèle (XGBoost) atteint un ROC-AUC de \textbf{0.664} 
+    sur l'ensemble de test.
+  \end{tcolorbox}
+
+  \vspace{2cm}
+
+  \begin{tabular}{ll}
+    \toprule
+    \textbf{Domaine} & Transport Aérien / Prédiction \\
+    \textbf{Type de tâche} & Classification Binaire Supervisée \\
+    \textbf{Dataset} & 3 000 000 vols, 31 variables \\
+    \textbf{Variable cible} & Retard à l'arrivée $\geq$ 15 min \\
+    \textbf{Environnement} & Python 3.12, scikit-learn, XGBoost, LightGBM \\
+    \textbf{Déploiement} & Application Streamlit \\
+    \bottomrule
+  \end{tabular}
+
+  \vfill
+  {\large\color{darkgray} Rapport d'Analyse --- 2024}
+\end{titlepage}
+
+% ─── Table des matières ───────────────────────────────────────────────────────
+\tableofcontents
+\newpage
+
+% ──────────────────────────────────────────────────────────────────────────────
+\section{Introduction et Contexte}
+% ──────────────────────────────────────────────────────────────────────────────
+
+\subsection{Problématique}
+
+Les retards de vols constituent l'un des défis majeurs du transport aérien mondial.
+Selon les données de l'IATA (International Air Transport Association), les retards 
+coûtent annuellement plusieurs milliards d'euros aux compagnies aériennes, aux 
+aéroports et aux passagers. En Europe, environ 20\% des vols arrivent avec un retard 
+supérieur à 15 minutes, ce qui représente un impact économique et opérationnel considérable.
+
+\begin{infobox}[Définition officielle du retard]
+  Un vol est officiellement considéré comme \textbf{retardé} lorsque son retard 
+  à l'arrivée est supérieur ou égal à \textbf{15 minutes} par rapport à l'heure 
+  programmée, conformément aux normes FAA (Federal Aviation Administration) et 
+  aux directives IATA.
+\end{infobox}
+
+\subsection{Objectifs}
+
+Ce projet vise à :
+\begin{itemize}[leftmargin=*]
+  \item Analyser un dataset massif de vols aériens (3 millions d'entrées)
+  \item Développer des modèles prédictifs pour anticiper les retards
+  \item Comparer les performances de plusieurs algorithmes de classification
+  \item Déployer une application interactive de prédiction en temps réel
+  \item Formuler des recommandations pratiques pour les opérateurs aériens
+\end{itemize}
+
+\subsection{Enjeux Industriels}
+
+La prédiction précoce des retards permet :
+\begin{enumerate}[leftmargin=*]
+  \item D'optimiser l'affectation des équipages et des aéronefs
+  \item De notifier les passagers à l'avance pour réduire l'insatisfaction
+  \item De minimiser les effets cascade (retards propagés entre vols)
+  \item D'améliorer la gestion des portes d'embarquement dans les hubs
+  \item De réduire les coûts opérationnels liés aux compensations passagers
+\end{enumerate}
+
+\newpage
+% ──────────────────────────────────────────────────────────────────────────────
+\section{Description des Données}
+% ──────────────────────────────────────────────────────────────────────────────
+
+\subsection{Structure du Dataset}
+
+Le dataset \texttt{data\_vols\_1.csv} contient \textbf{3 000 000 enregistrements} 
+de vols commerciaux avec 31 variables couvrant les informations de départ, d'arrivée, 
+les retards par catégorie et les caractéristiques opérationnelles.
+
+\begin{table}[H]
+  \centering
+  \caption{Statistiques globales du dataset}
+  \begin{tabular}{lrl}
+    \toprule
+    \textbf{Indicateur} & \textbf{Valeur} & \textbf{Unité} \\
+    \midrule
+    Total d'enregistrements & 3 000 000 & vols \\
+    Variables disponibles & 31 & colonnes \\
+    Vols retenus (après nettoyage) & 490 011 & vols \\
+    Vols retardés ($\geq$ 15 min) & 93 262 & vols \\
+    Taux de retard global & 19,03 & \% \\
+    Retard moyen à l'arrivée & 4,92 & minutes \\
+    Retard médian à l'arrivée & $-5,0$ & minutes \\
+    Retard maximum observé & 1 554 & minutes \\
+    Aéroports de départ distincts & 318 & aéroports \\
+    Compagnies aériennes & 12 & compagnies \\
+    Types d'avions & 4 106 & aéronefs \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\subsection{Variables Principales}
+
+\begin{table}[H]
+  \centering
+  \caption{Description des variables clés}
+  \small
+  \begin{tabular}{p{4.5cm}p{3cm}p{6cm}}
+    \toprule
+    \textbf{Variable} & \textbf{Type} & \textbf{Description} \\
+    \midrule
+    RETARD À L'ARRIVÉE & Float (cible) & Retard en minutes à l'arrivée \\
+    AÉROPORT DÉPART & Catégorielle & Code IATA de l'aéroport d'origine \\
+    AÉROPORT ARRIVÉE & Catégorielle & Code IATA de l'aéroport de destination \\
+    COMPAGNIE AÉRIENNE & Catégorielle & Code de la compagnie opérante \\
+    DÉPART PROGRAMMÉ & Entier & Heure de départ prévue (HHMM) \\
+    DISTANCE & Entier & Distance du vol en kilomètres \\
+    TEMPS PROGRAMMÉ & Float & Durée de vol programmée (minutes) \\
+    DATE & String & Date du vol (JJ/MM/AAAA) \\
+    NIVEAU DE SÉCURITÉ & Entier & Score de sécurité opérationnelle \\
+    RETARD MÉTÉO & Float & Part du retard due à la météo \\
+    RETARD COMPAGNIE & Float & Part du retard due à la compagnie \\
+    RETARD AVION & Float & Part du retard due à l'appareil \\
+    ANNULATION & Binaire & Indicateur d'annulation du vol \\
+    DÉTOURNEMENT & Binaire & Indicateur de détournement \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\newpage
+% ──────────────────────────────────────────────────────────────────────────────
+\section{Nettoyage et Préparation des Données}
+% ──────────────────────────────────────────────────────────────────────────────
+
+\subsection{Analyse des Valeurs Manquantes}
+
+Le dataset présente des valeurs manquantes significatives dans certaines colonnes,
+notamment les causes de retard :
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{RAISON D'ANNULATION} : 98,26\% de valeurs manquantes (normale pour les vols non annulés)
+  \item \textbf{RETARD SYSTÈME / SÉCURITÉ / COMPAGNIE / AVION / MÉTÉO} : 81,48\% manquants
+  \item \textbf{COMPAGNIE AÉRIENNE} : 4,75\% manquants
+  \item \textbf{HEURE DE DÉPART / RETARD DE DÉPART} : 1,65\% manquants
+\end{itemize}
+
+\begin{warningbox}[Décision de traitement]
+  Les colonnes de causes de retard (RETARD SYSTÈME, RETARD MÉTÉO, etc.) ont été 
+  exclues des features d'entraînement car elles ne sont pas disponibles \textit{a priori} 
+  avant le vol --- les inclure constituerait une fuite de données (\textit{data leakage}).
+\end{warningbox}
+
+\subsection{Étapes de Nettoyage}
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Exclusion des vols annulés} : 1 742 vols supprimés (0,58\%)
+  \item \textbf{Exclusion des vols détournés} : 297 vols supprimés (0,10\%)
+  \item \textbf{Suppression des lignes sans retard} : 2 039 vols sans information d'arrivée
+  \item \textbf{Création de la variable cible} : $\text{RETARDÉ} = \mathbb{1}[\text{Retard} \geq 15]$
+  \item \textbf{Extraction de features temporelles} depuis la colonne DATE
+\end{enumerate}
+
+\subsection{Ingénierie des Variables (Feature Engineering)}
+
+À partir des données brutes, les features suivantes ont été construites :
+
+\begin{lstlisting}[caption={Création des features temporelles et encodage}]
+# Variable cible binaire
+df['RETARDE'] = (df["RETARD A L'ARRIVEE"] >= 15).astype(int)
+
+# Features temporelles
+df['DATE']       = pd.to_datetime(df['DATE'], dayfirst=True)
+df['MOIS']       = df['DATE'].dt.month        # Saisonnalité
+df['JOUR_SEMAINE'] = df['DATE'].dt.dayofweek  # Lundi=0, Dimanche=6
+df['HEURE_DEP']  = df['DEPART PROGRAMME'] // 100  # Heure de départ
+
+# Encodage des variables catégorielles
+le_dep  = LabelEncoder()
+le_arr  = LabelEncoder()
+le_comp = LabelEncoder()
+\end{lstlisting}
+
+\subsection{Variables Utilisées pour la Modélisation}
+
+\begin{table}[H]
+  \centering
+  \caption{Features retenues pour l'entraînement des modèles}
+  \begin{tabular}{llp{6cm}}
+    \toprule
+    \textbf{Feature} & \textbf{Type} & \textbf{Justification} \\
+    \midrule
+    DÉPART PROGRAMMÉ & Numérique & Heure de vol intégrale \\
+    HEURE\_DEP & Numérique & Heure extraite (0–23) \\
+    MOIS & Numérique & Saisonnalité annuelle \\
+    JOUR\_SEMAINE & Numérique & Demande hebdomadaire \\
+    DISTANCE & Numérique & Longueur du trajet \\
+    TEMPS PROGRAMMÉ & Numérique & Durée de vol prévue \\
+    NIVEAU DE SÉCURITÉ & Numérique & Score opérationnel \\
+    AÉROPORT\_DEP\_ENC & Encodé & Aéroport d'origine \\
+    AÉROPORT\_ARR\_ENC & Encodé & Aéroport de destination \\
+    COMPAGNIE\_ENC & Encodé & Opérateur aérien \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\textbf{Partitionnement :} 80\% entraînement (373 419 vols) / 20\% test (93 355 vols),
+avec stratification sur la variable cible pour maintenir la proportion de classes.
+
+\newpage
+% ──────────────────────────────────────────────────────────────────────────────
+\section{Analyse Exploratoire des Données (EDA)}
+% ──────────────────────────────────────────────────────────────────────────────
+
+\subsection{Distribution de la Variable Cible}
+
+Sur l'ensemble des 490 011 vols retenus :
+\begin{itemize}[leftmargin=*]
+  \item \textbf{396 749 vols} (80,97\%) arrivent à l'heure ou avec moins de 15 minutes de retard
+  \item \textbf{93 262 vols} (19,03\%) sont considérés comme retardés ($\geq$ 15 min)
+\end{itemize}
+
+Ce déséquilibre de classes (ratio 4:1) est typique des problèmes de prédiction de 
+retards et a orienté nos choix de modèles et d'hyperparamètres (utilisation de 
+\texttt{class\_weight='balanced'} et de \texttt{scale\_pos\_weight}).
+
+\subsection{Analyse Temporelle}
+
+\subsubsection{Saisonnalité Mensuelle}
+
+L'analyse mensuelle révèle une saisonnalité marquée :
+\begin{itemize}[leftmargin=*]
+  \item Les mois d'été (\textbf{juin, juillet, août}) présentent des taux de retard 
+        plus élevés, liés à la densité du trafic et aux conditions météorologiques
+  \item \textbf{Décembre et janvier} montrent également une hausse due aux conditions 
+        hivernales (verglas, neige, visibilité réduite)
+  \item Les mois de \textbf{printemps} (mars--mai) sont généralement plus favorables
+\end{itemize}
+
+\subsubsection{Effet du Jour de la Semaine}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Vendredi et dimanche} : taux de retard les plus élevés, correspondant 
+        aux pics de trafic de fin de semaine
+  \item \textbf{Mardi et mercredi} : jours les plus fluides, avec moins de congestion
+\end{itemize}
+
+\subsubsection{Impact de l'Heure de Départ}
+
+La période de départ est l'un des facteurs les plus discriminants :
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Vols matinaux} (5h--9h) : taux de retard minimal, l'avion commence 
+        sa rotation sans subir les retards accumulés de la journée
+  \item \textbf{Vols du soir} (18h--22h) : taux de retard maximal, effet cascades 
+        des retards précédents
+  \item Tendance croissante au fil de la journée (phénomène de \textit{delay propagation})
+\end{itemize}
+
+\subsection{Analyse Géographique}
+
+Les 318 aéroports du dataset présentent des taux de retard très hétérogènes.
+Les aéroports avec les taux les plus élevés sont généralement :
+\begin{itemize}[leftmargin=*]
+  \item Des hubs importants avec une forte densité de trafic
+  \item Des aéroports exposés à des conditions météorologiques défavorables
+  \item Des plateformes de correspondance subissant l'effet cascade
+\end{itemize}
+
+\subsection{Distribution du Retard en Minutes}
+
+La distribution du retard à l'arrivée présente une forme \textbf{asymétrique à droite} 
+(skewness positif) :
+\begin{itemize}[leftmargin=*]
+  \item Médiane : $-5$ minutes (la majorité des vols arrivent légèrement en avance)
+  \item Moyenne : $+4{,}92$ minutes (tirée vers le haut par les retards extrêmes)
+  \item Maximum observé : $1\,554$ minutes ($\approx 26$ heures)
+  \item Les valeurs extrêmes correspondent à des événements exceptionnels (pannes majeures, 
+        conditions climatiques sévères)
+\end{itemize}
+
+\newpage
+% ──────────────────────────────────────────────────────────────────────────────
+\section{Modèles de Machine Learning}
+% ──────────────────────────────────────────────────────────────────────────────
+
+\subsection{Choix des Algorithmes}
+
+Quatre algorithmes ont été sélectionnés pour couvrir un spectre de complexité :
+
+\begin{infobox}[Stratégie de sélection des modèles]
+  Le choix s'est porté sur : (1) un modèle baseline linéaire, (2) un modèle 
+  d'ensemble basé sur les arbres, et (3) deux algorithmes de gradient boosting 
+  qui représentent l'état de l'art pour les données tabulaires.
+\end{infobox}
+
+\subsubsection{1. Régression Logistique (Baseline)}
+
+Modèle linéaire servant de référence (\textit{baseline}). Avantages : 
+interprétabilité maximale, rapidité d'entraînement. Limites : ne capture pas 
+les interactions non-linéaires entre variables.
+
+\textbf{Hyperparamètres :} \texttt{max\_iter=500}, \texttt{class\_weight='balanced'}
+
+\subsubsection{2. Random Forest}
+
+Ensemble de 100 arbres de décision entraînés en parallèle. 
+Robuste au bruit, peu sensible au réglage des hyperparamètres.
+Bonne interprétabilité via l'importance des features.
+
+\textbf{Hyperparamètres :} \texttt{n\_estimators=100}, \texttt{max\_depth=12}, 
+\texttt{class\_weight='balanced'}
+
+\subsubsection{3. XGBoost (Extreme Gradient Boosting)}
+
+Algorithme de boosting par gradient utilisant des arbres CART. 
+Régularisation L1/L2 intégrée, gestion native des valeurs manquantes.
+Optimal pour les données tabulaires structurées.
+
+\textbf{Hyperparamètres :} \texttt{n\_estimators=200}, \texttt{max\_depth=6}, 
+\texttt{learning\_rate=0.1}, \texttt{scale\_pos\_weight=4.25}
+
+\subsubsection{4. LightGBM (Light Gradient Boosting Machine)}
+
+Variante de gradient boosting utilisant une stratégie de croissance feuille 
+par feuille (\textit{leaf-wise}) plutôt que niveau par niveau. 
+Significativement plus rapide que XGBoost sur de grands datasets.
+
+\textbf{Hyperparamètres :} \texttt{n\_estimators=200}, \texttt{max\_depth=8}, 
+\texttt{learning\_rate=0.1}, \texttt{class\_weight='balanced'}
+
+\subsection{Gestion du Déséquilibre de Classes}
+
+Le ratio 80\%/20\% entre vols non-retardés et retardés nécessite des stratégies adaptées :
+
+\begin{table}[H]
+  \centering
+  \caption{Stratégies de gestion du déséquilibre par modèle}
+  \begin{tabular}{ll}
+    \toprule
+    \textbf{Modèle} & \textbf{Stratégie} \\
+    \midrule
+    Régression Logistique & \texttt{class\_weight='balanced'} \\
+    Random Forest & \texttt{class\_weight='balanced'} \\
+    XGBoost & \texttt{scale\_pos\_weight = n\_neg / n\_pos $\approx$ 4.25} \\
+    LightGBM & \texttt{class\_weight='balanced'} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\newpage
+% ──────────────────────────────────────────────────────────────────────────────
+\section{Évaluation des Performances}
+% ──────────────────────────────────────────────────────────────────────────────
+
+\subsection{Métriques d'Évaluation}
+
+Pour un problème de classification avec déséquilibre de classes, plusieurs métriques 
+complémentaires sont nécessaires :
+
+\begin{align}
+  \text{Accuracy} &= \frac{VP + VN}{VP + VN + FP + FN} \\[6pt]
+  \text{Précision} &= \frac{VP}{VP + FP} \\[6pt]
+  \text{Rappel} &= \frac{VP}{VP + FN} \\[6pt]
+  \text{F1-Score} &= 2 \cdot \frac{\text{Précision} \times \text{Rappel}}{\text{Précision} + \text{Rappel}} \\[6pt]
+  \text{ROC-AUC} &= \int_0^1 \text{TPR}(\text{FPR})\, d(\text{FPR})
+\end{align}
+
+où VP = Vrais Positifs, VN = Vrais Négatifs, FP = Faux Positifs, FN = Faux Négatifs.
+
+\subsection{Tableau Comparatif des Résultats}
+
+\begin{table}[H]
+  \centering
+  \caption{Comparaison des performances sur l'ensemble de test (93 355 vols)}
+  \setlength{\tabcolsep}{8pt}
+  \begin{tabular}{lcccccc}
+    \toprule
+    \textbf{Modèle} & \textbf{Accuracy} & \textbf{F1-Score} & \textbf{Précision} & \textbf{Rappel} & \textbf{ROC-AUC} & \textbf{Avg. Prec.} \\
+    \midrule
+    Rég. Logistique  & 0.5671 & 0.3381 & 0.2385 & 0.5801 & 0.5964 & 0.2387 \\
+    Random Forest    & 0.6241 & 0.3673 & 0.2704 & 0.5726 & 0.6476 & 0.2986 \\
+    \rowcolor{best}
+    \textbf{XGBoost} & \textbf{0.6176} & \textbf{0.3820} & \textbf{0.2760} & \textbf{0.6202} & \textbf{0.6644} & \textbf{0.3153} \\
+    LightGBM         & 0.6128 & 0.3801 & 0.2735 & 0.6230 & 0.6638 & 0.3150 \\
+    \bottomrule
+  \end{tabular}
+  \\\vspace{4pt}
+  \small \textit{La ligne en vert correspond au meilleur modèle selon le ROC-AUC}
+\end{table}
+
+\subsection{Analyse des Résultats par Modèle}
+
+\subsubsection{Régression Logistique}
+
+Le modèle baseline produit les performances les plus faibles mais reste au-dessus 
+d'un classificateur aléatoire (ROC-AUC = 0.50). Son accuracy de 56,7\% avec 
+un rappel de 58\% montre qu'il détecte une fraction raisonnable des retards,
+mais génère de nombreux faux positifs (précision 23,9\%).
+
+\subsubsection{Random Forest}
+
+Nette amélioration par rapport au baseline : ROC-AUC passe à 0.648 (+8,6\%).
+L'accuracy de 62,4\% est la plus élevée de tous les modèles, mais cela s'explique
+en partie par un rappel légèrement plus bas (57,3\%). Le Random Forest offre une 
+bonne stabilité grâce à l'agrégation de 100 arbres.
+
+\subsubsection{XGBoost --- Meilleur Modèle}
+
+\begin{resultbox}[XGBoost : Modèle Recommandé]
+  XGBoost obtient le \textbf{meilleur ROC-AUC} (0.664) et la meilleure 
+  \textbf{Average Precision} (0.315), ce qui en fait le modèle le plus 
+  performant pour discriminer les vols retardés des vols à l'heure. 
+  Son rappel de 62\% signifie qu'il détecte 6 retards sur 10 correctement.
+\end{resultbox}
+
+\subsubsection{LightGBM}
+
+Performances quasi-identiques à XGBoost (ROC-AUC 0.664 vs 0.663), avec l'avantage 
+d'un temps d'entraînement significativement réduit sur de grands datasets. 
+En production, LightGBM serait préféré pour sa scalabilité.
+
+\subsection{Interprétation des Matrices de Confusion}
+
+Pour XGBoost sur 93 355 vols de test :
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Vrais Positifs} : $\approx$ 11 500 retards correctement prédits
+  \item \textbf{Faux Négatifs} : $\approx$ 7 000 retards manqués (vols annoncés à l'heure, finalement retardés)
+  \item \textbf{Faux Positifs} : $\approx$ 30 000 fausses alarmes
+  \item \textbf{Vrais Négatifs} : $\approx$ 44 000 vols à l'heure correctement identifiés
+\end{itemize}
+
+Le ratio FP élevé est inévitable avec un déséquilibre 80/20 et des features 
+incomplètes (absence des données météo temps-réel, état des pistes, etc.).
+
+\subsection{Importance des Variables}
+
+L'analyse d'importance des features (Random Forest, XGBoost, LightGBM) révèle
+un consensus sur les variables les plus prédictives :
+
+\begin{enumerate}[leftmargin=*]
+  \item \textbf{Distance du vol} : les longs-courriers accumulent plus facilement des retards
+  \item \textbf{Temps de vol programmé} : corrélé à la distance, proxy de la complexité
+  \item \textbf{Heure de départ} : effet cascade quotidien
+  \item \textbf{Aéroport de départ} : certains hubs sont structurellement plus congestionné
+  \item \textbf{Compagnie aérienne} : reflète les pratiques opérationnelles différentes
+  \item \textbf{Mois} : saisonnalité et trafic
+  \item \textbf{Jour de la semaine} : pattern hebdomadaire de demande
+\end{enumerate}
+
+\newpage
+% ──────────────────────────────────────────────────────────────────────────────
+\section{Limites et Améliorations Proposées}
+% ──────────────────────────────────────────────────────────────────────────────
+
+\subsection{Limites Actuelles}
+
+\begin{warningbox}[Limites identifiées]
+  \begin{itemize}[leftmargin=*, nosep]
+    \item \textbf{Absence de données météo temps-réel} : vent, visibilité, précipitations sont 
+          les principaux facteurs non capturés
+    \item \textbf{Absence d'historique de l'avion} : le retard précédent de l'appareil 
+          (rotation) est très prédictif mais non disponible
+    \item \textbf{Déséquilibre de classes} : malgré les stratégies de pondération, 
+          le modèle reste biaisé
+    \item \textbf{Features statiques} : les features capturent des tendances globales, 
+          pas les conditions dynamiques du jour J
+    \item \textbf{Échantillonnage} : 500 000 vols utilisés sur 3 millions disponibles
+  \end{itemize}
+\end{warningbox}
+
+\subsection{Pistes d'Amélioration}
+
+\subsubsection{Amélioration des Données}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Intégration météo} : API OpenWeatherMap ou Météo-France pour données 
+        historiques par aéroport et date
+  \item \textbf{Données de rotation} : retard du vol précédent effectué par le même avion
+  \item \textbf{Données NAS (National Airspace System)} : saturation du contrôle aérien
+  \item \textbf{Données aéroport} : taux d'occupation des pistes, incidents récents
+  \item \textbf{Features cycliques} : encoder l'heure et le mois comme $\sin(2\pi x / T)$, 
+        $\cos(2\pi x / T)$ pour préserver la continuité
+\end{itemize}
+
+\subsubsection{Amélioration des Modèles}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Optimisation des hyperparamètres} : recherche bayésienne (Optuna) 
+        plutôt que manuelle
+  \item \textbf{SMOTE / ADASYN} : suréchantillonnage synthétique de la classe minoritaire
+  \item \textbf{Modèles neuronaux} : TabNet, réseaux de neurones tabulaires
+  \item \textbf{Threshold tuning} : optimiser le seuil de décision (par défaut 0.5) 
+        pour maximiser le rappel ou le F1
+  \item \textbf{Stacking / Blending} : combiner les prédictions des 4 modèles
+  \item \textbf{Entraînement sur dataset complet} : utiliser les 3 millions de vols
+\end{itemize}
+
+\subsubsection{Amélioration du Déploiement}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Mise à jour incrémentale} : réentraînement périodique avec les nouveaux vols
+  \item \textbf{API REST} : exposer le modèle via FastAPI pour intégration systèmes
+  \item \textbf{Monitoring} : suivi de la dérive des données (data drift) en production
+  \item \textbf{A/B Testing} : comparer les décisions prises avec/sans le système
+  \item \textbf{Explicabilité SHAP} : expliquer chaque prédiction individuellement
+\end{itemize}
+
+\newpage
+% ──────────────────────────────────────────────────────────────────────────────
+\section{Déploiement de l'Application Streamlit}
+% ──────────────────────────────────────────────────────────────────────────────
+
+\subsection{Architecture de l'Application}
+
+L'application Streamlit offre une interface utilisateur intuitive permettant :
+\begin{itemize}[leftmargin=*]
+  \item La prédiction interactive pour un vol individuel
+  \item La visualisation des performances des 4 modèles
+  \item L'exploration des analyses EDA
+  \item La comparaison des prédictions entre modèles
+\end{itemize}
+
+\subsection{Structure du Projet}
+
+\begin{lstlisting}[language=bash, caption={Structure des fichiers du projet}]
+flight_delay_project/
+|-- src/
+|   |-- app.py              # Application principale Streamlit
+|-- outputs/
+|   |-- eda_analysis.png    # Figures EDA
+|   |-- model_comparison.png
+|   |-- confusion_matrices.png
+|   |-- feature_importance.png
+|   |-- roc_curves.png
+|   |-- results_table.json
+|   |-- stats.json
+|-- models/
+|   |-- regression_logistique.pkl
+|   |-- random_forest.pkl
+|   |-- xgboost.pkl
+|   |-- lightgbm.pkl
+|   |-- le_dep.pkl
+|   |-- le_arr.pkl
+|   |-- le_comp.pkl
+|-- reports/
+    |-- rapport_retards_vols.tex
+\end{lstlisting}
+
+\subsection{Instructions de Déploiement}
+
+\begin{lstlisting}[language=bash, caption={Commandes de déploiement}]
+# Installation des dependances
+pip install streamlit scikit-learn xgboost lightgbm
+pip install pandas numpy matplotlib seaborn joblib
+
+# Lancement de l'application
+cd flight_delay_project/
+streamlit run src/app.py --server.port 8501
+
+# Acces dans le navigateur
+# http://localhost:8501
+\end{lstlisting}
+
+\subsection{Fonctionnalités de l'Application}
+
+\begin{table}[H]
+  \centering
+  \caption{Pages et fonctionnalités de l'application Streamlit}
+  \begin{tabular}{p{3.5cm}p{9cm}}
+    \toprule
+    \textbf{Page} & \textbf{Fonctionnalités} \\
+    \midrule
+    Accueil & Métriques clés, description du projet, résumé du meilleur modèle \\
+    Prédiction & Formulaire interactif, résultat avec probabilités, comparaison entre modèles \\
+    Performance Modèles & Tableau comparatif avec surbrillance du meilleur, courbes ROC, matrices de confusion, importance des features \\
+    Analyse EDA & Visualisations de la distribution des retards, tendances temporelles, géographie \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\newpage
+% ──────────────────────────────────────────────────────────────────────────────
+\section{Conclusion}
+% ──────────────────────────────────────────────────────────────────────────────
+
+\subsection{Synthèse}
+
+Ce projet a démontré la faisabilité d'un système de prédiction de retards de vols 
+basé sur le Machine Learning, appliqué à un dataset industriel de grande taille 
+(3 millions de vols). 
+
+Les principaux résultats sont :
+
+\begin{resultbox}[Résultats Clés]
+  \begin{itemize}[leftmargin=*, nosep]
+    \item \textbf{XGBoost} est le meilleur modèle avec un ROC-AUC de \textbf{0.664}
+    \item \textbf{LightGBM} offre des performances quasi-équivalentes avec un avantage en vitesse
+    \item Les features temporelles (heure, mois) et la distance sont les plus prédictives
+    \item Un taux de rappel de 62\% permet de détecter la majorité des retards significatifs
+    \item L'application Streamlit déployée rend le modèle accessible à des non-experts
+  \end{itemize}
+\end{resultbox}
+
+\subsection{Perspectives}
+
+L'intégration de données météorologiques temps-réel et de l'historique de rotation 
+des avions constitue la piste d'amélioration la plus prometteuse. Des études ont 
+montré que ces deux types de données peuvent porter le ROC-AUC au-delà de 0.80 
+sur des problèmes similaires.
+
+Pour un déploiement industriel, les prochaines étapes seraient :
+\begin{enumerate}[leftmargin=*]
+  \item Développer une API REST pour l'intégration dans les systèmes de gestion aéroportuaire
+  \item Mettre en place un pipeline de réentraînement automatique (MLOps)
+  \item Implémenter un système d'explication des prédictions (SHAP values)
+  \item Réaliser un test en conditions réelles sur un aéroport pilote
+  \item Évaluer l'impact économique des prédictions correctes vs erreurs de prédiction
+\end{enumerate}
+
+\subsection{Valeur Métier}
+
+Un système de prédiction performant permet d'économiser en moyenne entre 
+\textbf{500 et 2 000 euros par vol retardé} identifié à l'avance, grâce à :
+\begin{itemize}[leftmargin=*]
+  \item La notification proactive des passagers (réduction des compensations)
+  \item L'optimisation du routing des équipages et des avions
+  \item La réduction des effets cascade sur les vols suivants
+  \item L'amélioration de la satisfaction client et de l'image de marque
+\end{itemize}
+
+Appliqué aux 93 262 vols retardés de notre dataset (19\% du total), 
+un système avec 62\% de rappel permettrait de traiter proactivement 
+environ \textbf{57 822 retards}, représentant un potentiel d'économies 
+de plusieurs dizaines de millions d'euros sur l'ensemble du réseau.
+
+\vspace{1cm}
+\begin{center}
+  \rule{0.5\textwidth}{0.4pt}\\[0.3cm]
+  {\small\itshape Rapport généré dans le cadre d'un projet d'analyse de données --- 2024}\\
+  {\small\itshape Technologies : Python 3.12 $\cdot$ scikit-learn $\cdot$ XGBoost $\cdot$ LightGBM $\cdot$ Streamlit}
+\end{center}
+
+\end{document}
